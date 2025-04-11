@@ -7,10 +7,9 @@
   <link rel="stylesheet" href="css/global.css" />
 </head>
 <body>
-  <!-- First, load auth.js to initialize the Firebase app -->
+  <!-- Load auth.js to initialize Firebase -->
   <script type="module" src="js/auth.js"></script>
-  
-  <!-- Then run the auth check -->
+  <!-- Check authentication state -->
   <script type="module">
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
     const auth = getAuth();

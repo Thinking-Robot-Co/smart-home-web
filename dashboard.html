@@ -19,7 +19,7 @@
     <section id="rooms-section">
       <h3>Your Rooms</h3>
       <div id="rooms-container">
-        <!-- Room cards (and their nodes) will be loaded dynamically from Firebase -->
+        <!-- Room cards (and nodes) will be dynamically loaded from Firebase -->
       </div>
       <div style="text-align: center;">
         <button id="add-room-btn">+ Add Room</button>
@@ -27,12 +27,9 @@
     </section>
   </div>
   
-  <!-- Import Firebase Auth logic -->
   <script type="module" src="js/auth.js"></script>
-  
-  <!-- Firebase Database integration for Rooms and Nodes -->
   <script type="module">
-    import { getDatabase, ref, push, onChildAdded, onChildRemoved, remove } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+    import { getDatabase, ref, onChildAdded, onChildRemoved, remove, push } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
     
     const auth = getAuth();
@@ -42,7 +39,7 @@
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUserUid = user.uid;
-        // Load user's display name from profile and show in dashboard
+        // Load the user's username from Firebase and display it
         const profileRef = ref(db, "users/" + user.uid + "/profile");
         onChildAdded(profileRef, (snapshot) => {
           if (snapshot.key === "username") {
@@ -55,7 +52,7 @@
       }
     });
     
-    // Dummy array of icon filenames for nodes (adjust or expand as needed)
+    // Dummy array of icon filenames for nodes
     const iconNames = [
       "cook.png", "kitchen.png", "sofa.png", "chair.png", "study.png",
       "bed.png", "lamp.png", "tv.png", "fan.png", "ac.png",
@@ -71,7 +68,6 @@
     const roomsContainer = document.getElementById("rooms-container");
     const addRoomBtn = document.getElementById("add-room-btn");
     
-    // Load rooms for the current user from Firebase
     function loadRooms() {
       const roomsRef = ref(db, "users/" + currentUserUid + "/rooms");
       onChildAdded(roomsRef, (snapshot) => {
@@ -86,7 +82,6 @@
       });
     }
     
-    // Create a new room card
     function createRoomCard(roomKey, roomData) {
       const roomCard = document.createElement("div");
       roomCard.classList.add("room-card");
@@ -96,7 +91,7 @@
       header.textContent = roomData.name;
       roomCard.appendChild(header);
       
-      // Right-click on room card to delete the room
+      // Right-click to delete room
       roomCard.addEventListener("contextmenu", function(e) {
         e.preventDefault();
         if (confirm("Delete room '" + roomData.name + "'?")) {
@@ -104,12 +99,10 @@
         }
       });
       
-      // Nodes container
       const nodesContainer = document.createElement("div");
       nodesContainer.classList.add("nodes-container");
       roomCard.appendChild(nodesContainer);
       
-      // Load existing nodes and listen for new ones
       const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
       onChildAdded(roomNodesRef, (snapshot) => {
         const nodeData = snapshot.val();
@@ -122,7 +115,6 @@
         if (nodeElem) nodeElem.remove();
       });
       
-      // Button to add a node to this room
       const addNodeBtn = document.createElement("button");
       addNodeBtn.classList.add("add-node");
       addNodeBtn.textContent = "+ Add Node";
@@ -134,7 +126,6 @@
       roomsContainer.appendChild(roomCard);
     }
     
-    // Create a node item inside a room
     function addNodeItem(container, roomKey, nodeKey, nodeData) {
       const nodeItem = document.createElement("div");
       nodeItem.classList.add("node-item");
@@ -149,7 +140,6 @@
       nodeLabel.textContent = nodeData.name;
       nodeItem.appendChild(nodeLabel);
       
-      // Right-click deletion for node
       nodeItem.addEventListener("contextmenu", function(e) {
         e.preventDefault();
         if (confirm("Delete node '" + nodeData.name + "'?")) {
@@ -160,7 +150,6 @@
       container.appendChild(nodeItem);
     }
     
-    // Add room to Firebase when "+ Add Room" is clicked
     addRoomBtn.addEventListener("click", function() {
       const roomName = prompt("Enter Room Name:");
       if (roomName) {
@@ -168,7 +157,6 @@
       }
     });
     
-    // Add node to a specific room
     function addNodeToRoom(roomKey) {
       const nodeName = prompt("Enter node name:");
       if (!nodeName) return;
