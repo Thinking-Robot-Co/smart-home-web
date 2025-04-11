@@ -19,7 +19,7 @@
     <section id="rooms-section">
       <h3 style="margin-left:20px; color: var(--text-color);">Your Rooms</h3>
       <div id="rooms-container">
-        <!-- Dynamically added room cards will appear here -->
+        <!-- Room cards will be dynamically added here -->
       </div>
       <div style="text-align: center;">
         <button id="add-room-btn">+ Add Room</button>
@@ -30,86 +30,166 @@
   <!-- Import Firebase Auth logic -->
   <script type="module" src="js/auth.js"></script>
   
-  <!-- Check auth state and display user info -->
+  <!-- Import Firebase Database SDK -->
   <script type="module">
+    import { getDatabase, ref, push, onChildAdded, onChildRemoved, remove, update } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    
     const auth = getAuth();
+    const db = getDatabase();
+    let currentUserUid = null;
+    
+    // When auth state changes, load user's rooms
     auth.onAuthStateChanged(user => {
       if (user) {
         document.getElementById("userEmail").textContent = user.email;
+        currentUserUid = user.uid;
+        loadRooms(); // Load rooms from Firebase
       } else {
         window.location.href = "login.html";
       }
     });
-  </script>
-  
-  <!-- Dashboard dynamic JS: Rooms and Nodes management -->
-  <script>
-    // Dummy array of icon filenames for nodes (you can add more as needed)
+    
+    // Dummy array of icon filenames for nodes (you can expand/change as needed)
     const iconNames = [
       "cook.png", "kitchen.png", "sofa.png", "chair.png", "study.png",
-      "bed.png", "tv.png", "fan.png", "ac.png",
-      "table.png", "window.png", "door.png", "dining.png", "clock.png"
+      "bed.png", "lamp.png", "tv.png", "fan.png", "ac.png",
+      "table.png", "window.png", "door.png", "book.png", "plant.png",
+      "computer.png", "stove.png", "fridge.png", "oven.png", "microwave.png",
+      "vacuum.png", "clock.png", "radio.png", "console.png", "shelf.png",
+      "dining.png", "garage.png", "bath.png", "mirror.png", "curtain.png",
+      "office.png", "podcast.png", "heater.png", "projector.png", "stereo.png",
+      "printer.png", "router.png", "wireless.png", "basement.png", "attic.png",
+      "porch.png", "balcony.png", "garden.png", "entry.png", "lobby.png"
     ];
     
-    // Get reference to the Rooms container and the Add Room button
     const roomsContainer = document.getElementById("rooms-container");
     const addRoomBtn = document.getElementById("add-room-btn");
     
-    // Function to create a new room card
-    function createRoom(roomName) {
+    // Function to load rooms from Firebase for current user
+    function loadRooms() {
+      const roomsRef = ref(db, "users/" + currentUserUid + "/rooms");
+      
+      // Listener for newly added rooms
+      onChildAdded(roomsRef, (snapshot) => {
+        const roomData = snapshot.val();
+        const roomKey = snapshot.key;
+        createRoomCard(roomKey, roomData);
+      });
+      
+      // Listener for room deletion (child removed)
+      onChildRemoved(roomsRef, (snapshot) => {
+        const roomKey = snapshot.key;
+        const roomCard = document.getElementById("room-" + roomKey);
+        if (roomCard) {
+          roomCard.remove();
+        }
+      });
+    }
+    
+    // Create room card DOM element from Firebase room data
+    function createRoomCard(roomKey, roomData) {
       const roomCard = document.createElement("div");
       roomCard.classList.add("room-card");
+      roomCard.id = "room-" + roomKey;
       
       // Room header with room name
       const header = document.createElement("h3");
-      header.textContent = roomName;
+      header.textContent = roomData.name;
       roomCard.appendChild(header);
+      
+      // Add right-click event for room deletion
+      roomCard.addEventListener("contextmenu", function(e) {
+        e.preventDefault();
+        if (confirm("Delete room '" + roomData.name + "'?")) {
+          const roomRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey);
+          remove(roomRef);
+        }
+      });
       
       // Container for nodes inside room
       const nodesContainer = document.createElement("div");
       nodesContainer.classList.add("nodes-container");
       roomCard.appendChild(nodesContainer);
       
+      // Load existing nodes from this room and listen for new ones
+      const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
+      onChildAdded(roomNodesRef, (snapshot) => {
+        const nodeData = snapshot.val();
+        const nodeKey = snapshot.key;
+        addNodeItem(nodesContainer, roomKey, nodeKey, nodeData);
+      });
+      onChildRemoved(roomNodesRef, (snapshot) => {
+        const nodeKey = snapshot.key;
+        const nodeElem = document.getElementById("node-" + roomKey + "-" + nodeKey);
+        if (nodeElem) {
+          nodeElem.remove();
+        }
+      });
+      
       // Button to add a node inside the room
       const addNodeBtn = document.createElement("button");
       addNodeBtn.classList.add("add-node");
       addNodeBtn.textContent = "+ Add Node";
       addNodeBtn.onclick = function() {
-        // Prompt user for node name
-        const nodeName = prompt("Enter node name:");
-        if (!nodeName) return;
-        // Prompt to select an icon from the available list (simple, enter filename)
-        let iconChoice = prompt("Enter icon name (e.g., kitchen.png):\nOptions: " + iconNames.join(", "));
-        if (!iconNames.includes(iconChoice)) {
-          alert("Icon not available. Using default icon (lamp.png).");
-          iconChoice = "lamp.png";
-        }
-        // Create node element
-        const nodeItem = document.createElement("div");
-        nodeItem.classList.add("node-item");
-        const iconImg = document.createElement("img");
-        iconImg.src = "assets/images/" + iconChoice;
-        iconImg.alt = nodeName;
-        nodeItem.appendChild(iconImg);
-        const nodeLabel = document.createElement("span");
-        nodeLabel.textContent = nodeName;
-        nodeItem.appendChild(nodeLabel);
-        nodesContainer.appendChild(nodeItem);
+        addNodeToRoom(roomKey);
       };
       roomCard.appendChild(addNodeBtn);
       
-      // Append the new room card to the rooms container
       roomsContainer.appendChild(roomCard);
     }
     
-    // Handler for Add Room button
+    // Function to add a node item DOM element (inside a room)
+    function addNodeItem(container, roomKey, nodeKey, nodeData) {
+      const nodeItem = document.createElement("div");
+      nodeItem.classList.add("node-item");
+      nodeItem.id = "node-" + roomKey + "-" + nodeKey;
+      
+      const iconImg = document.createElement("img");
+      iconImg.src = "assets/images/" + nodeData.icon;
+      iconImg.alt = nodeData.name;
+      nodeItem.appendChild(iconImg);
+      
+      const nodeLabel = document.createElement("span");
+      nodeLabel.textContent = nodeData.name;
+      nodeItem.appendChild(nodeLabel);
+      
+      // Right-click deletion for node
+      nodeItem.addEventListener("contextmenu", function(e) {
+        e.preventDefault();
+        if (confirm("Delete node '" + nodeData.name + "'?")) {
+          const nodeRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey);
+          remove(nodeRef);
+        }
+      });
+      
+      container.appendChild(nodeItem);
+    }
+    
+    // Handler for Add Room button: prompt and add room to Firebase
     addRoomBtn.addEventListener("click", function() {
       const roomName = prompt("Enter Room Name:");
       if (roomName) {
-        createRoom(roomName);
+        const roomsRef = ref(db, "users/" + currentUserUid + "/rooms");
+        push(roomsRef, { name: roomName });
       }
     });
+    
+    // Function to add a node to a given room
+    function addNodeToRoom(roomKey) {
+      const nodeName = prompt("Enter node name:");
+      if (!nodeName) return;
+      
+      let iconChoice = prompt("Enter icon name (e.g., kitchen.png):\nOptions: " + iconNames.join(", "));
+      if (!iconNames.includes(iconChoice)) {
+        alert("Icon not available. Using default icon (lamp.png).");
+        iconChoice = "lamp.png";
+      }
+      
+      const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
+      push(roomNodesRef, { name: nodeName, icon: iconChoice });
+    }
   </script>
+  
 </body>
 </html>
