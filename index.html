@@ -7,8 +7,11 @@
   <link rel="stylesheet" href="css/global.css" />
 </head>
 <body>
+  <!-- First, load auth.js which initializes the Firebase app -->
+  <script type="module" src="js/auth.js"></script>
+  
+  <!-- Then run the auth check -->
   <script type="module">
-    // On load, check auth state and redirect accordingly
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
     const auth = getAuth();
     auth.onAuthStateChanged(user => {
