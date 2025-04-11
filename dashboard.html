@@ -1,11 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Smart Home</title>
+  <link rel="stylesheet" href="global.css">
 </head>
 <body>
-    This is Dashboard
+  <div class="container">
+    <h2>Dashboard</h2>
+    <p>Welcome, <span id="userEmail">User</span>!</p>
+    <!-- Other dashboard dummy content can go here -->
+    <button onclick="logout()">Logout</button>
+  </div>
+  
+  <!-- Include auth.js to get Firebase and auth functions -->
+  <script type="module" src="auth.js"></script>
+  
+  <!-- Script to check auth state and display user email -->
+  <script type="module">
+    import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    
+    const auth = getAuth();
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("userEmail").textContent = user.email;
+      } else {
+        // Redirect to login page if not logged in
+        window.location.href = "index.html";
+      }
+    });
+  </script>
 </body>
 </html>

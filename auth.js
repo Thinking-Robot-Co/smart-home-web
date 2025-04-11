@@ -5,11 +5,12 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   setPersistence,
+  signOut,
   browserLocalPersistence,
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-// Your Firebase config
+// Your Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCaGAZ-7Uk3xe1TyilhwQmEb1wuFkqZoVg",
   authDomain: "smarthomeproject-f5e4a.firebaseapp.com",
@@ -44,7 +45,7 @@ window.login = function () {
   const email = document.getElementById("loginEmail").value;
   const password = document.getElementById("loginPassword").value;
   const rememberMe = document.getElementById("rememberMe").checked;
-  
+
   // Set persistence based on "Remember Me"
   const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
   setPersistence(auth, persistence)
@@ -57,5 +58,17 @@ window.login = function () {
     })
     .catch((error) => {
       alert("Login error: " + error.message);
+    });
+};
+
+// Logout Function
+window.logout = function () {
+  signOut(auth)
+    .then(() => {
+      alert("Logged out successfully!");
+      window.location.href = "index.html"; // Redirect to Login page
+    })
+    .catch((error) => {
+      alert("Error during logout: " + error.message);
     });
 };
