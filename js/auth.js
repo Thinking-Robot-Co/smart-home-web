@@ -15,7 +15,7 @@ import {
   set
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
-// Your Firebase configuration
+// Replace with your own Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCaGAZ-7Uk3xe1TyilhwQmEb1wuFkqZoVg",
   authDomain: "smarthomeproject-f5e4a.firebaseapp.com",
@@ -33,93 +33,103 @@ const db = getDatabase(app);
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Sign Up Function (stores username and email)
+  // Utility: display message in a target div
+  function showMessage(targetId, msg, isError = true) {
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) return;
+    // Decide color (red for error, green for success)
+    targetEl.style.color = isError ? "#ff4f4f" : "#4caf50";
+    targetEl.textContent = msg;
+  }
+
+  // Sign Up
   window.signUp = function () {
     const usernameEl = document.getElementById("signupUsername");
     const emailEl = document.getElementById("signupEmail");
     const passwordEl = document.getElementById("signupPassword");
-    const messageDiv = document.getElementById("signupMessage");
-    
+    const msgElId = "signupMessage";
+
     if (!usernameEl || !emailEl || !passwordEl) {
-      messageDiv.textContent = "Signup form is not properly loaded.";
+      showMessage(msgElId, "Signup form not found.", true);
       return;
     }
-    
+
     const username = usernameEl.value.trim();
     const email = emailEl.value.trim();
     const password = passwordEl.value;
-    
-    // Clear message area
-    messageDiv.textContent = "";
-    
+
+    // Some basic validation
     if (!username) {
-      messageDiv.textContent = "Please enter a username.";
+      showMessage(msgElId, "Please enter a username.", true);
       return;
     }
-    
+
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         const user = userCredential.user;
-        // Save additional user profile info in the database
+        // Store user details in database
         set(ref(db, "users/" + user.uid + "/profile"), {
           username: username,
           email: email,
           createdAt: Date.now()
         })
         .then(() => {
-          // Redirect to dashboard on success
+          // Show success on signup form
+          showMessage(msgElId, "Account created successfully! Redirecting...", false);
+          // Redirect to dashboard
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          messageDiv.textContent = "Error saving profile: " + error.message;
+          showMessage(msgElId, "Error saving profile: " + error.message, true);
         });
       })
       .catch((error) => {
-        messageDiv.textContent = "Signup error: " + error.message;
+        showMessage(msgElId, "Signup error: " + error.message, true);
       });
   };
 
-  // Login Function with "Remember Me"
+  // Login
   window.login = function () {
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
     const rememberEl = document.getElementById("rememberMe");
-    const messageDiv = document.getElementById("loginMessage");
-    
+    const msgElId = "loginMessage";
+
     if (!emailEl || !passwordEl) {
-      messageDiv.textContent = "Login form is not properly loaded.";
+      showMessage(msgElId, "Login form not found.", true);
       return;
     }
-    
+
     const email = emailEl.value.trim();
     const password = passwordEl.value;
     const rememberMe = rememberEl ? rememberEl.checked : false;
-    
-    // Clear previous message
-    messageDiv.textContent = "";
-    
+
+    // Set local or session persistence
     const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+
     setPersistence(auth, persistence)
       .then(() => {
         return signInWithEmailAndPassword(auth, email, password);
       })
       .then((userCredential) => {
-        // Redirect on successful login
+        showMessage(msgElId, "Login successful! Redirecting...", false);
         window.location.href = "dashboard.html";
       })
       .catch((error) => {
-        messageDiv.textContent = "Login error: " + error.message;
+        showMessage(msgElId, "Login error: " + error.message, true);
       });
   };
 
-  // Logout Function
+  // Logout
   window.logout = function () {
     signOut(auth)
       .then(() => {
+        // If you want to show a message upon logout, you can do so,
+        // but we'll just redirect immediately.
         window.location.href = "login.html";
       })
       .catch((error) => {
-        // Optionally, you can display the error on dashboard (or use alert)
+        // We might want to show an inline message on the dashboard or use console.error
         console.error("Error during logout:", error);
       });
   };
