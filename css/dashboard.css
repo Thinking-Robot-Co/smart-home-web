@@ -4,13 +4,14 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 0 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #444;
   margin-bottom: 20px;
 }
 
 header h2 {
   margin: 0;
   font-size: 1.8rem;
+  color: var(--primary-color);
 }
 
 header button {
@@ -24,7 +25,12 @@ header button {
 }
 
 header button:hover {
-  background-color: darkorange;
+  background-color: #00b0a1;
+}
+
+#rooms-section h3 {
+  margin-left: 20px;
+  color: var(--text-color);
 }
 
 #rooms-container {
@@ -36,16 +42,16 @@ header button:hover {
 }
 
 .room-card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: #222;
+  border: 1px solid #333;
   border-radius: 8px;
   padding: 15px;
   width: 280px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .room-card h3 {
-  margin-top: 0;
+  margin: 0 0 10px;
   font-size: 1.2rem;
   color: var(--primary-color);
 }
@@ -80,7 +86,7 @@ header button:hover {
 }
 
 .room-card button.add-node:hover {
-  background-color: #3ab3a0;
+  background-color: #125ea2;
 }
 
 #add-room-btn {
@@ -96,5 +102,5 @@ header button:hover {
 }
 
 #add-room-btn:hover {
-  background-color: #357ABD;
+  background-color: #0d74b6;
 }

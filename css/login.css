@@ -1,4 +1,11 @@
 /* css/login.css */
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
 .tabs {
   display: flex;
   justify-content: space-around;
@@ -9,7 +16,7 @@
   background: none;
   border: none;
   padding: 10px 15px;
-  font-size: 1rem;
+  font-size: 1.1rem;
   cursor: pointer;
   color: var(--text-color);
   border-bottom: 2px solid transparent;
@@ -27,17 +34,34 @@
 }
 
 h2 {
-  color: var(--text-color);
+  text-align: center;
   margin-bottom: 20px;
+  color: var(--primary-color);
 }
 
+input[type="text"],
 input[type="email"],
 input[type="password"] {
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
-  border: 1px solid #ccc;
+  border: 1px solid #444;
   border-radius: 5px;
+  background: #2a2a2a;
+  color: var(--text-color);
   font-size: 1rem;
+}
+
+.input-group {
+  position: relative;
+}
+
+.input-group i {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--text-color);
 }
 
 .remember-me {
@@ -51,7 +75,7 @@ input[type="password"] {
 }
 
 button {
-  padding: 10px;
+  padding: 12px;
   font-size: 1rem;
   background-color: var(--primary-color);
   color: #fff;
@@ -63,4 +87,11 @@ button {
 
 button:hover {
   background-color: var(--secondary-color);
+}
+
+@media only screen and (max-width: 600px) {
+  .container {
+    margin: 20px;
+    padding: 15px;
+  }
 }

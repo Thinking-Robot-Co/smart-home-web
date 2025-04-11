@@ -1,11 +1,11 @@
 /* css/global.css */
 :root {
-  --primary-color: #4A90E2;       /* A cool blue */
-  --secondary-color: #50E3C2;     /* A fresh teal */
-  --accent-color: #F5A623;        /* A warm orange accent */
-  --background-color: #F4F7FC;    /* Light and clean background */
-  --text-color: #333333;          /* Dark grey for readability */
-  --container-bg: #ffffff;        /* White for containers */
+  --primary-color: #1e88e5;       /* Cool blue */
+  --secondary-color: #1565c0;     /* Darker blue */
+  --accent-color: #00acc1;        /* Teal accent */
+  --background-color: #121212;    /* Near black */
+  --text-color: #e0e0e0;          /* Light gray */
+  --container-bg: #1e1e1e;        /* Dark container background */
 }
 
 body {
@@ -18,9 +18,9 @@ body {
 
 .container {
   background: var(--container-bg);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  margin: 20px auto;
+  max-width: 500px;
+  margin: 40px auto;
   padding: 20px;
-  max-width: 1000px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }

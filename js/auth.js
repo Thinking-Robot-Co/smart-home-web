@@ -9,8 +9,13 @@ import {
   browserLocalPersistence,
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  set
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
-// Your Firebase config
+// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCaGAZ-7Uk3xe1TyilhwQmEb1wuFkqZoVg",
   authDomain: "smarthomeproject-f5e4a.firebaseapp.com",
@@ -22,19 +27,36 @@ const firebaseConfig = {
   measurementId: "G-2VWTQ74QPS"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getDatabase(app);
 
-// Sign Up Function
+// Sign Up Function (stores username, email, createdAt)
 window.signUp = function () {
-  const email = document.getElementById("signupEmail").value;
+  const username = document.getElementById("signupUsername").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
   const password = document.getElementById("signupPassword").value;
-
+  
+  if (!username) {
+    alert("Please enter a username.");
+    return;
+  }
+  
   createUserWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
-      alert("Account created successfully! 🎉");
-      window.location.href = "dashboard.html";
+      const user = userCredential.user;
+      set(ref(db, "users/" + user.uid + "/profile"), {
+        username: username,
+        email: email,
+        createdAt: Date.now()
+      })
+      .then(() => {
+        alert("Account created successfully! 🎉");
+        window.location.href = "dashboard.html";
+      })
+      .catch((error) => {
+        alert("Error saving profile: " + error.message);
+      });
     })
     .catch((error) => {
       alert("Signup error: " + error.message);
@@ -43,7 +65,7 @@ window.signUp = function () {
 
 // Login Function with "Remember Me"
 window.login = function () {
-  const email = document.getElementById("loginEmail").value;
+  const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
   const rememberMe = document.getElementById("rememberMe").checked;
   
