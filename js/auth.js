@@ -1,4 +1,4 @@
-// auth.js
+// js/auth.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
   getAuth,
@@ -10,7 +10,7 @@ import {
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
-// Your Firebase Config
+// Your Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCaGAZ-7Uk3xe1TyilhwQmEb1wuFkqZoVg",
   authDomain: "smarthomeproject-f5e4a.firebaseapp.com",
@@ -22,6 +22,7 @@ const firebaseConfig = {
   measurementId: "G-2VWTQ74QPS"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
@@ -33,7 +34,7 @@ window.signUp = function () {
   createUserWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       alert("Account created successfully! 🎉");
-      window.location.href = "dashboard.html"; // Redirect to Dashboard
+      window.location.href = "dashboard.html";
     })
     .catch((error) => {
       alert("Signup error: " + error.message);
@@ -45,8 +46,7 @@ window.login = function () {
   const email = document.getElementById("loginEmail").value;
   const password = document.getElementById("loginPassword").value;
   const rememberMe = document.getElementById("rememberMe").checked;
-
-  // Set persistence based on "Remember Me"
+  
   const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
   setPersistence(auth, persistence)
     .then(() => {
@@ -54,7 +54,7 @@ window.login = function () {
     })
     .then((userCredential) => {
       alert("Login successful ✅");
-      window.location.href = "dashboard.html"; // Redirect to Dashboard
+      window.location.href = "dashboard.html";
     })
     .catch((error) => {
       alert("Login error: " + error.message);
@@ -66,7 +66,7 @@ window.logout = function () {
   signOut(auth)
     .then(() => {
       alert("Logged out successfully!");
-      window.location.href = "index.html"; // Redirect to Login page
+      window.location.href = "login.html";
     })
     .catch((error) => {
       alert("Error during logout: " + error.message);
