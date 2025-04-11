@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="global.css" />
 </head>
 <body>
+  <!-- Container for login/signup forms -->
   <div class="container">
     <div class="tabs">
       <button id="loginTab" class="active">Login</button>
@@ -35,9 +36,24 @@
     </div>
   </div>
   
+  <!-- Import auth.js first so we can use Firebase functions -->
   <script type="module" src="auth.js"></script>
+  
+  <!-- Check authentication state on page load -->
+  <script type="module">
+    import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    const auth = getAuth();
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // If user is logged in, redirect to dashboard
+        window.location.href = "dashboard.html";
+      }
+      // If no user, the login/signup forms will be visible.
+    });
+  </script>
+  
+  <!-- Simple tab switcher script -->
   <script>
-    // Simple tab switcher
     const loginTab = document.getElementById("loginTab");
     const signupTab = document.getElementById("signupTab");
     const loginForm = document.getElementById("loginForm");
