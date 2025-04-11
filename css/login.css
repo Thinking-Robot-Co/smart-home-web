@@ -95,3 +95,8 @@ button:hover {
     padding: 15px;
   }
 }
+.message {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #ff6b6b;  /* Red for errors; you can adjust as needed */
+}

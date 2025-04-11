@@ -31,17 +31,17 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Ensure DOM is ready before attaching functions.
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Sign Up Function (stores username and email in the database)
+  // Sign Up Function (stores username and email)
   window.signUp = function () {
     const usernameEl = document.getElementById("signupUsername");
     const emailEl = document.getElementById("signupEmail");
     const passwordEl = document.getElementById("signupPassword");
+    const messageDiv = document.getElementById("signupMessage");
     
     if (!usernameEl || !emailEl || !passwordEl) {
-      alert("Signup form is not properly loaded.");
+      messageDiv.textContent = "Signup form is not properly loaded.";
       return;
     }
     
@@ -49,8 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = emailEl.value.trim();
     const password = passwordEl.value;
     
+    // Clear message area
+    messageDiv.textContent = "";
+    
     if (!username) {
-      alert("Please enter a username.");
+      messageDiv.textContent = "Please enter a username.";
       return;
     }
     
@@ -64,26 +67,27 @@ document.addEventListener("DOMContentLoaded", () => {
           createdAt: Date.now()
         })
         .then(() => {
-          alert("Account created successfully! 🎉");
+          // Redirect to dashboard on success
           window.location.href = "dashboard.html";
         })
         .catch((error) => {
-          alert("Error saving profile: " + error.message);
+          messageDiv.textContent = "Error saving profile: " + error.message;
         });
       })
       .catch((error) => {
-        alert("Signup error: " + error.message);
+        messageDiv.textContent = "Signup error: " + error.message;
       });
   };
 
-  // Login Function with "Remember Me" feature
+  // Login Function with "Remember Me"
   window.login = function () {
     const emailEl = document.getElementById("loginEmail");
     const passwordEl = document.getElementById("loginPassword");
     const rememberEl = document.getElementById("rememberMe");
+    const messageDiv = document.getElementById("loginMessage");
     
     if (!emailEl || !passwordEl) {
-      alert("Login form is not properly loaded.");
+      messageDiv.textContent = "Login form is not properly loaded.";
       return;
     }
     
@@ -91,17 +95,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = passwordEl.value;
     const rememberMe = rememberEl ? rememberEl.checked : false;
     
+    // Clear previous message
+    messageDiv.textContent = "";
+    
     const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
     setPersistence(auth, persistence)
       .then(() => {
         return signInWithEmailAndPassword(auth, email, password);
       })
       .then((userCredential) => {
-        alert("Login successful ✅");
+        // Redirect on successful login
         window.location.href = "dashboard.html";
       })
       .catch((error) => {
-        alert("Login error: " + error.message);
+        messageDiv.textContent = "Login error: " + error.message;
       });
   };
 
@@ -109,11 +116,11 @@ document.addEventListener("DOMContentLoaded", () => {
   window.logout = function () {
     signOut(auth)
       .then(() => {
-        alert("Logged out successfully!");
         window.location.href = "login.html";
       })
       .catch((error) => {
-        alert("Error during logout: " + error.message);
+        // Optionally, you can display the error on dashboard (or use alert)
+        console.error("Error during logout:", error);
       });
   };
 

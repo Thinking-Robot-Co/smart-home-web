@@ -20,7 +20,6 @@
         <input type="email" id="loginEmail" placeholder="Email" required />
         <div class="input-group">
           <input type="password" id="loginPassword" placeholder="Password" required />
-          <!-- Eye icon for show/hide password -->
           <i id="toggleLoginPwd" onclick="togglePassword('loginPassword', 'toggleLoginPwd')">&#128065;</i>
         </div>
         <div class="remember-me">
@@ -28,6 +27,8 @@
           <label for="rememberMe">Remember Me</label>
         </div>
         <button type="button" onclick="login()">Login</button>
+        <!-- Message area for login errors/success -->
+        <div id="loginMessage" class="message"></div>
       </form>
       
       <!-- Signup Form -->
@@ -40,6 +41,8 @@
           <i id="toggleSignupPwd" onclick="togglePassword('signupPassword', 'toggleSignupPwd')">&#128065;</i>
         </div>
         <button type="button" onclick="signUp()">Sign Up</button>
+        <!-- Message area for signup errors/success -->
+        <div id="signupMessage" class="message"></div>
       </form>
     </div>
   </div>
@@ -70,16 +73,14 @@
         signupForm.style.display = "block";
         loginForm.style.display = "none";
       });
-      
-      // Password toggle function is attached in auth.js as well
     });
     
-    // Password toggle function (if not yet defined)
+    // Password toggle function
     window.togglePassword = function(fieldId, iconId) {
       const pwdField = document.getElementById(fieldId);
       const iconElem = document.getElementById(iconId);
       if (pwdField) {
-        if(pwdField.type === "password") {
+        if (pwdField.type === "password") {
           pwdField.type = "text";
           iconElem.style.color = "var(--accent-color)";
         } else {
