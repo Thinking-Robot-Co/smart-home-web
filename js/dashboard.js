@@ -1,13 +1,13 @@
 // js/dashboard.js
-import { getDatabase, ref, onChildAdded, onChildRemoved, remove, push, update } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+import { getDatabase, ref, onChildAdded, onChildRemoved, remove, push } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const auth = getAuth();
 const db = getDatabase();
 let currentUserUid = null;
 
-// Global icon list – you can expand or later load dynamically
-const iconNames = [
+// Hardcoded array of available icon filenames (for both room and node creation)
+const availableIcons = [
   "cook.png", "kitchen.png", "sofa.png", "chair.png", "study.png",
   "bed.png", "lamp.png", "tv.png", "fan.png", "ac.png",
   "table.png", "window.png", "door.png", "book.png", "plant.png",
@@ -19,25 +19,51 @@ const iconNames = [
   "porch.png", "balcony.png", "garden.png", "entry.png", "lobby.png"
 ];
 
-// Ensure the user is authenticated and then load data
+const roomsContainer = document.getElementById("rooms-container");
+const addRoomBtn = document.getElementById("add-room-btn");
+
+// Modal elements
+const roomCreationModal = document.getElementById("roomCreationModal");
+const closeRoomCreation = document.getElementById("closeRoomCreation");
+const saveRoomBtn = document.getElementById("saveRoomBtn");
+const newRoomNameInput = document.getElementById("newRoomName");
+const roomIconPalette = document.getElementById("roomIconPalette");
+
+const nodeCreationModal = document.getElementById("nodeCreationModal");
+const closeNodeCreation = document.getElementById("closeNodeCreation");
+const saveNodeBtn = document.getElementById("saveNodeBtn");
+const newNodeNameInput = document.getElementById("newNodeName");
+const nodeIconPalette = document.getElementById("nodeIconPalette");
+
+const roomModal = document.getElementById("roomModal");
+const closeRoomModal = document.getElementById("closeRoomModal");
+const roomModalTitle = document.getElementById("roomModalTitle");
+const roomModalNodesContainer = document.getElementById("roomModalNodesContainer");
+const addNodeInRoomBtn = document.getElementById("addNodeInRoomBtn");
+
+// Variable to keep track of which room is being edited/added nodes to:
+let currentRoomKeyForNode = null;
+
+// When auth state changes, load dashboard and rooms
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUserUid = user.uid;
-    // Load display name from profile
-    const profileRef = ref(db, "users/" + user.uid + "/profile");
-    onChildAdded(profileRef, snapshot => {
-      if (snapshot.key === "username") {
-        document.getElementById("displayName").textContent = snapshot.val();
-      }
-    });
+    loadUserProfile();
     loadRooms();
   } else {
     window.location.href = "login.html";
   }
 });
 
-const roomsContainer = document.getElementById("rooms-container");
-const addRoomBtn = document.getElementById("add-room-btn");
+// Load user's profile to display username
+function loadUserProfile() {
+  const profileRef = ref(db, "users/" + currentUserUid + "/profile");
+  onChildAdded(profileRef, snapshot => {
+    if (snapshot.key === "username") {
+      document.getElementById("displayName").textContent = snapshot.val();
+    }
+  });
+}
 
 // Load rooms from Firebase
 function loadRooms() {
@@ -54,30 +80,38 @@ function loadRooms() {
   });
 }
 
-// Create room card element
+// Create a room card element
 function createRoomCard(roomKey, roomData) {
   const roomCard = document.createElement("div");
   roomCard.classList.add("room-card");
   roomCard.id = "room-" + roomKey;
-  
-  // Header with room name and icon for modification
+
   const header = document.createElement("h3");
   header.textContent = roomData.name;
   roomCard.appendChild(header);
-  
-  // Right-click on room header for delete or modify options
-  header.addEventListener("contextmenu", e => {
+
+  // Right-click to delete room
+  roomCard.addEventListener("contextmenu", e => {
     e.preventDefault();
-    // Show room options popup for delete/modify
-    showRoomOptionsPopup(roomKey, roomData);
+    if (confirm("Delete room '" + roomData.name + "'?")) {
+      remove(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey));
+    }
   });
-  
+
+  // Click on room to open room modal
+  roomCard.addEventListener("click", e => {
+    // Avoid conflict if user clicked the add node button inside the card
+    if (e.target.tagName.toLowerCase() !== "button") {
+      openRoomModal(roomKey, roomData);
+    }
+  });
+
   // Container for nodes
   const nodesContainer = document.createElement("div");
   nodesContainer.classList.add("nodes-container");
   roomCard.appendChild(nodesContainer);
-  
-  // Listen for nodes inside this room
+
+  // Load existing nodes for this room
   const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
   onChildAdded(roomNodesRef, snapshot => {
     const nodeData = snapshot.val();
@@ -89,280 +123,184 @@ function createRoomCard(roomKey, roomData) {
     const nodeElem = document.getElementById("node-" + roomKey + "-" + nodeKey);
     if (nodeElem) nodeElem.remove();
   });
-  
-  // Button to add a node to this room – opens node popup
+
+  // Button to add node (optional: we can keep it here or only inside room modal)
   const addNodeBtn = document.createElement("button");
   addNodeBtn.classList.add("add-node");
   addNodeBtn.textContent = "+ Add Node";
-  addNodeBtn.onclick = () => {
-    showAddNodePopup(roomKey);
+  addNodeBtn.onclick = e => {
+    // Prevent propagation so that clicking add node doesn't open room modal
+    e.stopPropagation();
+    openNodeCreationModal(roomKey);
   };
   roomCard.appendChild(addNodeBtn);
-  
-  // When room card is clicked (not right-click), open room details (optional)
-  roomCard.addEventListener("click", () => {
-    showRoomDetailPopup(roomKey, roomData);
-  });
-  
+
   roomsContainer.appendChild(roomCard);
 }
 
-// Create node element inside a room
+// Append a node item to a container (in room card or in room modal)
 function addNodeItem(container, roomKey, nodeKey, nodeData) {
   const nodeItem = document.createElement("div");
   nodeItem.classList.add("node-item");
   nodeItem.id = "node-" + roomKey + "-" + nodeKey;
-  
-  // Topbar for node actions
-  const nodeTopbar = document.createElement("div");
-  nodeTopbar.classList.add("node-topbar");
-  // Create buttons: Modify, Delete, Duplicate, Pin
-  const actions = [
-    { label: "Modify", action: () => modifyNode(roomKey, nodeKey, nodeData) },
-    { label: "Delete", action: () => deleteNode(roomKey, nodeKey) },
-    { label: "Duplicate", action: () => duplicateNode(roomKey, nodeKey, nodeData) },
-    { label: "Pin", action: () => pinNode(roomKey, nodeKey) }
-  ];
-  actions.forEach(item => {
-    const btn = document.createElement("button");
-    btn.textContent = item.label;
-    btn.onclick = e => {
-      e.stopPropagation();
-      item.action();
-    };
-    nodeTopbar.appendChild(btn);
-  });
-  nodeItem.appendChild(nodeTopbar);
-  
-  // Node icon and label
+
   const iconImg = document.createElement("img");
   iconImg.src = "assets/images/" + nodeData.icon;
   iconImg.alt = nodeData.name;
   nodeItem.appendChild(iconImg);
-  
+
   const nodeLabel = document.createElement("span");
   nodeLabel.textContent = nodeData.name;
   nodeItem.appendChild(nodeLabel);
-  
+
+  // Add options topbar for node (modify, delete, duplicate, pin)
+  // Here we simply add a small button for deletion as an example.
+  const optionsBtn = document.createElement("button");
+  optionsBtn.textContent = "⋮";
+  optionsBtn.classList.add("node-options-btn");
+  optionsBtn.onclick = function(e) {
+    e.stopPropagation();
+    showNodeOptions(roomKey, nodeKey, nodeData, nodeItem);
+  };
+  nodeItem.insertBefore(optionsBtn, nodeItem.firstChild);
+
   container.appendChild(nodeItem);
 }
 
-// ----- Popup functions -----
-
-// Utility: Create modal popup container
-function createModal(contentHtml) {
-  const modalOverlay = document.createElement("div");
-  modalOverlay.classList.add("modal-overlay");
-  const modal = document.createElement("div");
-  modal.classList.add("modal");
-  modal.innerHTML = contentHtml;
-  modalOverlay.appendChild(modal);
-  // Clicking outside modal closes it
-  modalOverlay.addEventListener("click", e => {
-    if (e.target === modalOverlay) {
-      modalOverlay.remove();
-    }
-  });
-  document.getElementById("modalContainer").appendChild(modalOverlay);
-  return modalOverlay;
-}
-
-// Show popup for adding a room with palette for icon selection
-function showAddRoomPopup() {
-  let selectedIcon = "";
-  const content = `
-    <h3>Add New Room</h3>
-    <input type="text" id="newRoomName" placeholder="Room Name" required />
-    <div class="icon-palette" id="roomIconPalette"></div>
-    <div class="modal-actions">
-      <button class="cancel" id="cancelRoomBtn">Cancel</button>
-      <button class="confirm" id="confirmRoomBtn">Add Room</button>
-    </div>
-  `;
-  const modalOverlay = createModal(content);
-  
-  // Populate icon palette
-  const palette = modalOverlay.querySelector("#roomIconPalette");
-  iconNames.forEach(icon => {
-    const img = document.createElement("img");
-    img.src = "assets/images/" + icon;
-    img.alt = icon;
-    img.onclick = function() {
-      // Mark this icon as selected
-      palette.querySelectorAll("img").forEach(i => i.classList.remove("selected"));
-      img.classList.add("selected");
-      selectedIcon = icon;
-    };
-    palette.appendChild(img);
-  });
-  
-  // Cancel button
-  modalOverlay.querySelector("#cancelRoomBtn").onclick = () => {
-    modalOverlay.remove();
-  };
-  
-  // Confirm button
-  modalOverlay.querySelector("#confirmRoomBtn").onclick = () => {
-    const roomName = modalOverlay.querySelector("#newRoomName").value.trim();
-    if (!roomName) {
-      alert("Please enter a room name.");
-      return;
-    }
-    if (!selectedIcon) {
-      alert("Please select an icon for the room.");
-      return;
-    }
-    // Save room to Firebase with chosen icon (store icon along with name)
-    push(ref(db, "users/" + currentUserUid + "/rooms"), { name: roomName, icon: selectedIcon });
-    modalOverlay.remove();
-  };
-}
-
-// Show popup for adding a node to a room
-function showAddNodePopup(roomKey) {
-  let selectedIcon = "";
-  const content = `
-    <h3>Add New Node</h3>
-    <input type="text" id="newNodeName" placeholder="Node Name" required />
-    <div class="icon-palette" id="nodeIconPalette"></div>
-    <div class="modal-actions">
-      <button class="cancel" id="cancelNodeBtn">Cancel</button>
-      <button class="confirm" id="confirmNodeBtn">Add Node</button>
-    </div>
-  `;
-  const modalOverlay = createModal(content);
-  
-  const palette = modalOverlay.querySelector("#nodeIconPalette");
-  iconNames.forEach(icon => {
-    const img = document.createElement("img");
-    img.src = "assets/images/" + icon;
-    img.alt = icon;
-    img.onclick = function() {
-      palette.querySelectorAll("img").forEach(i => i.classList.remove("selected"));
-      img.classList.add("selected");
-      selectedIcon = icon;
-    };
-    palette.appendChild(img);
-  });
-  
-  modalOverlay.querySelector("#cancelNodeBtn").onclick = () => {
-    modalOverlay.remove();
-  };
-  
-  modalOverlay.querySelector("#confirmNodeBtn").onclick = () => {
-    const nodeName = modalOverlay.querySelector("#newNodeName").value.trim();
-    if (!nodeName) {
-      alert("Please enter a node name.");
-      return;
-    }
-    if (!selectedIcon) {
-      alert("Please select an icon for the node.");
-      return;
-    }
-    // Save node data in Firebase under the given room
-    push(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes"), { name: nodeName, icon: selectedIcon });
-    modalOverlay.remove();
-  };
-}
-
-// Show popup for room options on right-click (delete, modify)
-// For simplicity we include "Modify" and "Delete" here.
-function showRoomOptionsPopup(roomKey, roomData) {
-  const content = `
-    <h3>Room Options</h3>
-    <button id="modifyRoomBtn">Modify Room</button>
-    <button id="deleteRoomBtn">Delete Room</button>
-    <button id="cancelRoomOptionsBtn">Cancel</button>
-  `;
-  const modalOverlay = createModal(content);
-  
-  modalOverlay.querySelector("#cancelRoomOptionsBtn").onclick = () => {
-    modalOverlay.remove();
-  };
-  
-  modalOverlay.querySelector("#deleteRoomBtn").onclick = () => {
-    if (confirm("Are you sure you want to delete room '" + roomData.name + "'?")) {
-      remove(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey));
-      modalOverlay.remove();
-    }
-  };
-  
-  modalOverlay.querySelector("#modifyRoomBtn").onclick = () => {
-    modalOverlay.remove();
-    // For modification, we can reuse the add room popup pre-filled with current values.
-    showModifyRoomPopup(roomKey, roomData);
-  };
-}
-
-// Example function for modifying a room (similar to add, but pre-filled)
-function showModifyRoomPopup(roomKey, roomData) {
-  let selectedIcon = roomData.icon || "";
-  const content = `
-    <h3>Modify Room</h3>
-    <input type="text" id="modRoomName" placeholder="Room Name" required value="${roomData.name}" />
-    <div class="icon-palette" id="modRoomIconPalette"></div>
-    <div class="modal-actions">
-      <button class="cancel" id="cancelModRoomBtn">Cancel</button>
-      <button class="confirm" id="confirmModRoomBtn">Save Changes</button>
-    </div>
-  `;
-  const modalOverlay = createModal(content);
-  
-  const palette = modalOverlay.querySelector("#modRoomIconPalette");
-  iconNames.forEach(icon => {
-    const img = document.createElement("img");
-    img.src = "assets/images/" + icon;
-    img.alt = icon;
-    // Preselect the current icon
-    if (icon === selectedIcon) img.classList.add("selected");
-    img.onclick = function() {
-      palette.querySelectorAll("img").forEach(i => i.classList.remove("selected"));
-      img.classList.add("selected");
-      selectedIcon = icon;
-    };
-    palette.appendChild(img);
-  });
-  
-  modalOverlay.querySelector("#cancelModRoomBtn").onclick = () => {
-    modalOverlay.remove();
-  };
-  
-  modalOverlay.querySelector("#confirmModRoomBtn").onclick = () => {
-    const modRoomName = modalOverlay.querySelector("#modRoomName").value.trim();
-    if (!modRoomName) {
-      alert("Please enter a room name.");
-      return;
-    }
-    if (!selectedIcon) {
-      alert("Please select an icon.");
-      return;
-    }
-    // Update room data
-    update(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey), {
-      name: modRoomName,
-      icon: selectedIcon
-    });
-    modalOverlay.remove();
-  };
-}
-
-// Node topbar options functions (placeholders)
-function modifyNode(roomKey, nodeKey, nodeData) {
-  // For modify, simply alert; you can implement a similar popup as add node.
-  console.log("Modify node", roomKey, nodeKey, nodeData);
-  alert("Modify node functionality to be implemented.");
-}
-function deleteNode(roomKey, nodeKey) {
-  if (confirm("Are you sure you want to delete this node?")) {
+// Show node options (modify, delete, duplicate, pin) in a small popup style
+function showNodeOptions(roomKey, nodeKey, nodeData, nodeItem) {
+  // For simplicity, we create a basic prompt-like options panel.
+  // You can replace this with a styled modal/popup.
+  const action = prompt("Enter action: (delete, duplicate, pin, modify)", "delete");
+  if (action === "delete") {
     remove(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey));
+  } else if (action === "duplicate") {
+    // Duplicate node: push a new node with same data
+    push(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes"), nodeData);
+  } else if (action === "modify") {
+    const newName = prompt("Enter new name:", nodeData.name);
+    if (newName) {
+      // Update node name
+      const nodeRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey);
+      // For simplicity we only update name; you can add icon change similarly.
+      nodeRef.update({ name: newName });
+    }
+  } else if (action === "pin") {
+    // For pinning, you may update a separate property. Here, we simply log it.
+    console.log("Node pinned:", nodeData);
+    alert("Node pinned! (This will add the node to a top bar later.)");
   }
 }
-function duplicateNode(roomKey, nodeKey, nodeData) {
-  // Duplicate node by pushing a new node with same data.
-  push(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes"), nodeData);
+
+// Open the room creation modal and build icon palette dynamically
+function openRoomCreationModal() {
+  roomCreationModal.style.display = "block";
+  newRoomNameInput.value = "";
+  roomIconPalette.innerHTML = "";
+  availableIcons.forEach(icon => {
+    const img = document.createElement("img");
+    img.src = "assets/images/" + icon;
+    img.alt = icon;
+    img.classList.add("icon-option");
+    // Clicking an icon highlights it and sets a selected attribute
+    img.addEventListener("click", () => {
+      // Remove highlight from other icons
+      document.querySelectorAll("#roomIconPalette img").forEach(i => i.classList.remove("selected"));
+      img.classList.add("selected");
+    });
+    roomIconPalette.appendChild(img);
+  });
 }
-function pinNode(roomKey, nodeKey) {
-  // For pinning, you might update a property on the node and then show it on the dashboard top.
-  update(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey), { pinned: true });
-  alert("Node pinned (this will move it to the dashboard top in the future).");
+
+// Save new room from modal
+saveRoomBtn.addEventListener("click", function() {
+  const roomName = newRoomNameInput.value.trim();
+  const selectedIconEl = document.querySelector("#roomIconPalette img.selected");
+  if (!roomName) {
+    alert("Please enter a room name.");
+    return;
+  }
+  // For room creation, you might store the chosen icon as a room icon.
+  const roomIcon = selectedIconEl ? selectedIconEl.alt : "default_room.png";
+  push(ref(db, "users/" + currentUserUid + "/rooms"), { name: roomName, icon: roomIcon });
+  roomCreationModal.style.display = "none";
+});
+
+// Open node creation modal; set global variable to know which room
+function openNodeCreationModal(roomKey) {
+  currentRoomKeyForNode = roomKey;
+  nodeCreationModal.style.display = "block";
+  newNodeNameInput.value = "";
+  nodeIconPalette.innerHTML = "";
+  availableIcons.forEach(icon => {
+    const img = document.createElement("img");
+    img.src = "assets/images/" + icon;
+    img.alt = icon;
+    img.classList.add("icon-option");
+    img.addEventListener("click", () => {
+      document.querySelectorAll("#nodeIconPalette img").forEach(i => i.classList.remove("selected"));
+      img.classList.add("selected");
+    });
+    nodeIconPalette.appendChild(img);
+  });
 }
+
+// Save node from node creation modal
+saveNodeBtn.addEventListener("click", function() {
+  const nodeName = newNodeNameInput.value.trim();
+  const selectedIconEl = document.querySelector("#nodeIconPalette img.selected");
+  if (!nodeName) {
+    alert("Please enter a node name.");
+    return;
+  }
+  const nodeIcon = selectedIconEl ? selectedIconEl.alt : "default_node.png";
+  push(ref(db, "users/" + currentUserUid + "/rooms/" + currentRoomKeyForNode + "/nodes"), { name: nodeName, icon: nodeIcon });
+  nodeCreationModal.style.display = "none";
+});
+
+// Open room modal to view nodes in a room
+function openRoomModal(roomKey, roomData) {
+  roomModal.style.display = "block";
+  roomModalTitle.textContent = roomData.name;
+  roomModalNodesContainer.innerHTML = "";  // Clear previous data
+  currentRoomKeyForNode = roomKey;
+  // Load nodes for this room
+  const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
+  onChildAdded(roomNodesRef, snapshot => {
+    const nodeData = snapshot.val();
+    const nodeKey = snapshot.key;
+    addNodeItem(roomModalNodesContainer, roomKey, nodeKey, nodeData);
+  });
+}
+
+// Close modal events
+closeRoomCreation.onclick = function() {
+  roomCreationModal.style.display = "none";
+};
+closeNodeCreation.onclick = function() {
+  nodeCreationModal.style.display = "none";
+};
+closeRoomModal.onclick = function() {
+  roomModal.style.display = "none";
+};
+
+// When the user clicks anywhere outside the modal, close it
+window.onclick = function(event) {
+  if (event.target === roomCreationModal) {
+    roomCreationModal.style.display = "none";
+  }
+  if (event.target === nodeCreationModal) {
+    nodeCreationModal.style.display = "none";
+  }
+  if (event.target === roomModal) {
+    roomModal.style.display = "none";
+  }
+};
+
+// Add event listener for "+ Add Room" button to open room creation modal
+addRoomBtn.addEventListener("click", openRoomCreationModal);
+
+// In the room modal, add event listener for adding a node
+addNodeInRoomBtn.addEventListener("click", () => {
+  openNodeCreationModal(currentRoomKeyForNode);
+});

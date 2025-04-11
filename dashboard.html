@@ -19,7 +19,7 @@
     <section id="rooms-section">
       <h3>Your Rooms</h3>
       <div id="rooms-container">
-        <!-- Room cards (with nodes) will be loaded dynamically -->
+        <!-- Room cards (and nodes) will be dynamically loaded from Firebase -->
       </div>
       <div style="text-align: center;">
         <button id="add-room-btn">+ Add Room</button>
@@ -27,12 +27,51 @@
     </section>
   </div>
   
-  <!-- Modal container (will be used by dashboard.js for popups) -->
-  <div id="modalContainer"></div>
+  <!-- Modal for Room Creation -->
+  <div id="roomCreationModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeRoomCreation">&times;</span>
+      <h3>Create New Room</h3>
+      <input type="text" id="newRoomName" placeholder="Room Name" required />
+      <div id="roomIconPalette" class="icon-palette">
+        <!-- Icon options for room will be generated here -->
+      </div>
+      <button id="saveRoomBtn">Save Room</button>
+    </div>
+  </div>
+
+  <!-- Modal for Node Creation -->
+  <div id="nodeCreationModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeNodeCreation">&times;</span>
+      <h3>Create New Node</h3>
+      <input type="text" id="newNodeName" placeholder="Node Name" required />
+      <div id="nodeIconPalette" class="icon-palette">
+        <!-- Icon options for node will be generated here -->
+      </div>
+      <button id="saveNodeBtn">Save Node</button>
+    </div>
+  </div>
+
+  <!-- Modal for Room Details (Show Nodes in Room & Node Options) -->
+  <div id="roomModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeRoomModal">&times;</span>
+      <div id="roomModalTopbar">
+        <!-- This topbar will show options for nodes later (modify, delete, duplicate, pin) -->
+        <!-- For each node, we can add a per-node options bar. Here we provide a placeholder -->
+      </div>
+      <h3 id="roomModalTitle">Room Name</h3>
+      <div id="roomModalNodesContainer">
+        <!-- List of nodes for the room will be loaded here -->
+      </div>
+      <button id="addNodeInRoomBtn">+ Add Node</button>
+    </div>
+  </div>
   
-  <!-- Firebase Auth logic -->
+  <!-- Firebase Auth logic is loaded from auth.js -->
   <script type="module" src="js/auth.js"></script>
-  <!-- Dashboard functions -->
+  <!-- Dashboard logic -->
   <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
