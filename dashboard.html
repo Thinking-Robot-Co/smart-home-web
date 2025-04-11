@@ -9,14 +9,28 @@
 </head>
 <body>
   <div class="container">
-    <h2>Dashboard</h2>
+    <header>
+      <h2>Dashboard</h2>
+      <button onclick="logout()">Logout</button>
+    </header>
     <p>Welcome, <span id="userEmail">User</span>!</p>
-    <!-- Dummy content placeholder -->
-    <p>This is your Smart Home Dashboard.</p>
-    <button onclick="logout()">Logout</button>
+    
+    <!-- Rooms Section -->
+    <section id="rooms-section">
+      <h3 style="margin-left:20px; color: var(--text-color);">Your Rooms</h3>
+      <div id="rooms-container">
+        <!-- Dynamically added room cards will appear here -->
+      </div>
+      <div style="text-align: center;">
+        <button id="add-room-btn">+ Add Room</button>
+      </div>
+    </section>
   </div>
   
+  <!-- Import Firebase Auth logic -->
   <script type="module" src="js/auth.js"></script>
+  
+  <!-- Check auth state and display user info -->
   <script type="module">
     import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
     const auth = getAuth();
@@ -25,6 +39,81 @@
         document.getElementById("userEmail").textContent = user.email;
       } else {
         window.location.href = "login.html";
+      }
+    });
+  </script>
+  
+  <!-- Dashboard dynamic JS: Rooms and Nodes management -->
+  <script>
+    // Dummy array of icon filenames for nodes (you can add more as needed)
+    const iconNames = [
+      "cook.png", "kitchen.png", "sofa.png", "chair.png", "study.png",
+      "bed.png", "lamp.png", "tv.png", "fan.png", "ac.png",
+      "table.png", "window.png", "door.png", "book.png", "plant.png",
+      "computer.png", "stove.png", "fridge.png", "oven.png", "microwave.png",
+      "vacuum.png", "clock.png", "radio.png", "console.png", "shelf.png",
+      "dining.png", "garage.png", "bath.png", "mirror.png", "curtain.png",
+      "office.png", "podcast.png", "heater.png", "projector.png", "stereo.png",
+      "printer.png", "router.png", "wireless.png", "basement.png", "attic.png",
+      "porch.png", "balcony.png", "garden.png", "entry.png", "lobby.png"
+    ];
+    
+    // Get reference to the Rooms container and the Add Room button
+    const roomsContainer = document.getElementById("rooms-container");
+    const addRoomBtn = document.getElementById("add-room-btn");
+    
+    // Function to create a new room card
+    function createRoom(roomName) {
+      const roomCard = document.createElement("div");
+      roomCard.classList.add("room-card");
+      
+      // Room header with room name
+      const header = document.createElement("h3");
+      header.textContent = roomName;
+      roomCard.appendChild(header);
+      
+      // Container for nodes inside room
+      const nodesContainer = document.createElement("div");
+      nodesContainer.classList.add("nodes-container");
+      roomCard.appendChild(nodesContainer);
+      
+      // Button to add a node inside the room
+      const addNodeBtn = document.createElement("button");
+      addNodeBtn.classList.add("add-node");
+      addNodeBtn.textContent = "+ Add Node";
+      addNodeBtn.onclick = function() {
+        // Prompt user for node name
+        const nodeName = prompt("Enter node name:");
+        if (!nodeName) return;
+        // Prompt to select an icon from the available list (simple, enter filename)
+        let iconChoice = prompt("Enter icon name (e.g., kitchen.png):\nOptions: " + iconNames.join(", "));
+        if (!iconNames.includes(iconChoice)) {
+          alert("Icon not available. Using default icon (lamp.png).");
+          iconChoice = "lamp.png";
+        }
+        // Create node element
+        const nodeItem = document.createElement("div");
+        nodeItem.classList.add("node-item");
+        const iconImg = document.createElement("img");
+        iconImg.src = "assets/images/" + iconChoice;
+        iconImg.alt = nodeName;
+        nodeItem.appendChild(iconImg);
+        const nodeLabel = document.createElement("span");
+        nodeLabel.textContent = nodeName;
+        nodeItem.appendChild(nodeLabel);
+        nodesContainer.appendChild(nodeItem);
+      };
+      roomCard.appendChild(addNodeBtn);
+      
+      // Append the new room card to the rooms container
+      roomsContainer.appendChild(roomCard);
+    }
+    
+    // Handler for Add Room button
+    addRoomBtn.addEventListener("click", function() {
+      const roomName = prompt("Enter Room Name:");
+      if (roomName) {
+        createRoom(roomName);
       }
     });
   </script>

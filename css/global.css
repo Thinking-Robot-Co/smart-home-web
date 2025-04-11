@@ -1,25 +1,26 @@
 /* css/global.css */
 :root {
-  --primary-color: #007BFF;
-  --secondary-color: #0056b3;
-  --bg-color: #f0f4f8;
-  --text-color: #333;
-  --container-bg: #fff;
+  --primary-color: #4A90E2;       /* A cool blue */
+  --secondary-color: #50E3C2;     /* A fresh teal */
+  --accent-color: #F5A623;        /* A warm orange accent */
+  --background-color: #F4F7FC;    /* Light and clean background */
+  --text-color: #333333;          /* Dark grey for readability */
+  --container-bg: #ffffff;        /* White for containers */
 }
 
 body {
   font-family: 'Poppins', sans-serif;
-  background: var(--bg-color);
+  background: var(--background-color);
   margin: 0;
   padding: 0;
+  color: var(--text-color);
 }
 
 .container {
   background: var(--container-bg);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
-  width: 320px;
+  margin: 20px auto;
   padding: 20px;
-  margin: 50px auto;
-  text-align: center;
+  max-width: 1000px;
 }

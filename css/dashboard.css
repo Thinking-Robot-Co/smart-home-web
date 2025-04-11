@@ -1,26 +1,100 @@
 /* css/dashboard.css */
-h2 {
-  color: var(--text-color);
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid #e0e0e0;
   margin-bottom: 20px;
 }
 
-p {
-  font-size: 1.1rem;
-  color: var(--text-color);
+header h2 {
+  margin: 0;
+  font-size: 1.8rem;
 }
 
-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background-color: var(--primary-color);
-  color: #fff;
+header button {
+  background-color: var(--accent-color);
   border: none;
+  color: #fff;
+  padding: 10px 15px;
   border-radius: 5px;
   cursor: pointer;
-  margin-top: 20px;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s;
 }
 
-button:hover {
+header button:hover {
+  background-color: darkorange;
+}
+
+#rooms-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 0 20px;
+  justify-content: flex-start;
+}
+
+.room-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  width: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.room-card h3 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+}
+
+.room-card .nodes-container {
+  margin-top: 10px;
+}
+
+.node-item {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+  font-size: 0.95rem;
+}
+
+.node-item img {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+}
+
+.room-card button.add-node {
   background-color: var(--secondary-color);
+  border: none;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+  font-size: 0.9rem;
+}
+
+.room-card button.add-node:hover {
+  background-color: #3ab3a0;
+}
+
+#add-room-btn {
+  background-color: var(--primary-color);
+  border: none;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 20px;
+  transition: background-color 0.3s;
+  font-size: 1rem;
+}
+
+#add-room-btn:hover {
+  background-color: #357ABD;
 }
