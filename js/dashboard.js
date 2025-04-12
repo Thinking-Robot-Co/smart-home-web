@@ -6,7 +6,7 @@ const auth = getAuth();
 const db = getDatabase();
 let currentUserUid = null;
 
-// Hardcoded array of available icon filenames (for both room and node creation)
+// Hardcoded array of available icon filenames for node/room creation
 const availableIcons = [
   "cook.png", "kitchen.png", "sofa.png", "chair.png", "study.png",
   "bed.png", "lamp.png", "tv.png", "fan.png", "ac.png",
@@ -22,7 +22,7 @@ const availableIcons = [
 const roomsContainer = document.getElementById("rooms-container");
 const addRoomBtn = document.getElementById("add-room-btn");
 
-// Modal elements for room/node creation are assumed to be set up as before
+// Modal elements for creating room and node (already defined in dashboard.html)
 const roomCreationModal = document.getElementById("roomCreationModal");
 const closeRoomCreation = document.getElementById("closeRoomCreation");
 const saveRoomBtn = document.getElementById("saveRoomBtn");
@@ -35,16 +35,17 @@ const saveNodeBtn = document.getElementById("saveNodeBtn");
 const newNodeNameInput = document.getElementById("newNodeName");
 const nodeIconPalette = document.getElementById("nodeIconPalette");
 
+// Modal for showing room details (unchanged)
 const roomModal = document.getElementById("roomModal");
 const closeRoomModal = document.getElementById("closeRoomModal");
 const roomModalTitle = document.getElementById("roomModalTitle");
 const roomModalNodesContainer = document.getElementById("roomModalNodesContainer");
 const addNodeInRoomBtn = document.getElementById("addNodeInRoomBtn");
 
-// Global variable: to track which room to add nodes to.
+// Global variable: currently selected room for node creation
 let currentRoomKeyForNode = null;
 
-// When auth state changes, load dashboard and rooms
+// When auth state changes, load profile and rooms
 auth.onAuthStateChanged(user => {
   if (user) {
     currentUserUid = user.uid;
@@ -55,7 +56,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// Load user's profile to display username on dashboard.
+// Load user's profile (username)
 function loadUserProfile() {
   const profileRef = ref(db, "users/" + currentUserUid + "/profile");
   onChildAdded(profileRef, snapshot => {
@@ -69,13 +70,10 @@ function loadUserProfile() {
 function loadRooms() {
   const roomsRef = ref(db, "users/" + currentUserUid + "/rooms");
   onChildAdded(roomsRef, snapshot => {
-    const roomData = snapshot.val();
-    const roomKey = snapshot.key;
-    createRoomCard(roomKey, roomData);
+    createRoomCard(snapshot.key, snapshot.val());
   });
   onChildRemoved(roomsRef, snapshot => {
-    const roomKey = snapshot.key;
-    const roomCard = document.getElementById("room-" + roomKey);
+    const roomCard = document.getElementById("room-" + snapshot.key);
     if (roomCard) roomCard.remove();
   });
 }
@@ -85,129 +83,104 @@ function createRoomCard(roomKey, roomData) {
   const roomCard = document.createElement("div");
   roomCard.classList.add("room-card");
   roomCard.id = "room-" + roomKey;
-
+  
   const header = document.createElement("h3");
   header.textContent = roomData.name;
   roomCard.appendChild(header);
-
+  
   // Right-click to delete room
-  roomCard.addEventListener("contextmenu", e => {
+  roomCard.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     if (confirm("Delete room '" + roomData.name + "'?")) {
       remove(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey));
     }
   });
-
-  // Container for nodes in this room
+  
+  // Click to open room modal for details
+  roomCard.addEventListener("click", (e) => {
+    // Avoid conflict with add node button clicks
+    if (e.target.tagName.toLowerCase() !== "button") {
+      openRoomModal(roomKey, roomData);
+    }
+  });
+  
+  // Container for nodes
   const nodesContainer = document.createElement("div");
   nodesContainer.classList.add("nodes-container");
   roomCard.appendChild(nodesContainer);
-
-  // Load existing nodes for this room
+  
+  // Load nodes for this room
   const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
   onChildAdded(roomNodesRef, snapshot => {
-    const nodeData = snapshot.val();
-    const nodeKey = snapshot.key;
-    addNodeItem(nodesContainer, roomKey, nodeKey, nodeData);
+    addNodeItem(nodesContainer, roomKey, snapshot.key, snapshot.val());
   });
   onChildRemoved(roomNodesRef, snapshot => {
-    const nodeKey = snapshot.key;
-    const nodeElem = document.getElementById("node-" + roomKey + "-" + nodeKey);
+    const nodeElem = document.getElementById("node-" + roomKey + "-" + snapshot.key);
     if (nodeElem) nodeElem.remove();
   });
-
-  // Button to add node (opens node creation modal)
+  
+  // Button: Add Node (can also be triggered inside room modal)
   const addNodeBtn = document.createElement("button");
   addNodeBtn.classList.add("add-node");
   addNodeBtn.textContent = "+ Add Node";
-  addNodeBtn.onclick = e => {
-    e.stopPropagation(); // Prevent room card click from firing
+  addNodeBtn.onclick = (e) => {
+    e.stopPropagation();
     openNodeCreationModal(roomKey);
   };
   roomCard.appendChild(addNodeBtn);
-
-  // Additionally, add a button to open device provisioning page for this node setup.
-  // For example, a "Configure Device" button that opens the ESP provisioning page.
-  const configureBtn = document.createElement("button");
-  configureBtn.classList.add("configure-device-btn");
-  configureBtn.textContent = "Configure Device";
-  configureBtn.onclick = e => {
-    e.stopPropagation();
-    // In a real scenario, you might have stored the device's IP or allow the user to input it.
-    let deviceIP = prompt("Enter device IP for provisioning (default: 192.168.4.1):", "192.168.4.1");
-    if (deviceIP) {
-      window.open("http://" + deviceIP, "_blank");
-    }
-  };
-  roomCard.appendChild(configureBtn);
-
+  
   roomsContainer.appendChild(roomCard);
 }
 
-// Append a node item to a container (used in both room card and room modal)
+// Create a node item element with toggle button for on/off
 function addNodeItem(container, roomKey, nodeKey, nodeData) {
   const nodeItem = document.createElement("div");
   nodeItem.classList.add("node-item");
   nodeItem.id = "node-" + roomKey + "-" + nodeKey;
-
+  
+  // Create options button for node options (modify, delete, duplicate, pin)
+  const optionsBtn = document.createElement("button");
+  optionsBtn.textContent = "⋮";
+  optionsBtn.classList.add("node-options-btn");
+  optionsBtn.onclick = (e) => {
+    e.stopPropagation();
+    showNodeOptions(roomKey, nodeKey, nodeData, nodeItem);
+  };
+  nodeItem.appendChild(optionsBtn);
+  
+  // Icon
   const iconImg = document.createElement("img");
   iconImg.src = "assets/images/" + nodeData.icon;
   iconImg.alt = nodeData.name;
   nodeItem.appendChild(iconImg);
-
+  
+  // Node label
   const nodeLabel = document.createElement("span");
   nodeLabel.textContent = nodeData.name;
   nodeItem.appendChild(nodeLabel);
-
-  // Add an "On/Off" toggle button
+  
+  // Toggle button for node on/off
   const toggleBtn = document.createElement("button");
-  toggleBtn.classList.add("toggle-btn");
-  // Initialize state if not set
-  if (!nodeData.state) {
-    nodeData.state = "OFF";
-  }
-  toggleBtn.textContent = (nodeData.state === "ON") ? "Turn Off" : "Turn On";
-  toggleBtn.onclick = function(e) {
+  toggleBtn.classList.add("node-toggle-btn");
+  toggleBtn.textContent = nodeData.state === "ON" ? "ON" : "OFF";
+  toggleBtn.onclick = (e) => {
     e.stopPropagation();
-    let newState = (nodeData.state === "ON") ? "OFF" : "ON";
-    // Update Firebase value for state
-    const nodeRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey);
-    update(nodeRef, { state: newState });
-    // Update UI immediately
-    toggleBtn.textContent = (newState === "ON") ? "Turn Off" : "Turn On";
-    nodeData.state = newState;
+    // Toggle the state: if currently ON, set to OFF and vice versa
+    const newState = toggleBtn.textContent === "ON" ? "OFF" : "ON";
+    update(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey), { state: newState });
   };
   nodeItem.appendChild(toggleBtn);
-
-  // If the node is not provisioned, show a "Configure" button; assume a node is provisioned if nodeData.provisioned is true.
-  if (!nodeData.provisioned) {
-    const configBtn = document.createElement("button");
-    configBtn.classList.add("configure-btn");
-    configBtn.textContent = "Configure";
-    configBtn.onclick = function(e) {
-      e.stopPropagation();
-      let deviceIP = prompt("Enter device IP for provisioning (default: 192.168.4.1):", "192.168.4.1");
-      if (deviceIP) {
-        window.open("http://" + deviceIP, "_blank");
-      }
-    };
-    nodeItem.appendChild(configBtn);
-  }
-
-  // Add a small options button for further actions (modify, delete, duplicate, pin)
-  const optionsBtn = document.createElement("button");
-  optionsBtn.textContent = "⋮";
-  optionsBtn.classList.add("node-options-btn");
-  optionsBtn.onclick = function(e) {
-    e.stopPropagation();
-    showNodeOptions(roomKey, nodeKey, nodeData, nodeItem);
-  };
-  nodeItem.insertBefore(optionsBtn, nodeItem.firstChild);
-
+  
+  // Listen for state changes in this node and update toggle button
+  const nodeRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey + "/state");
+  onChildAdded(nodeRef, snapshot => {
+    toggleBtn.textContent = snapshot.val();
+  });
+  
   container.appendChild(nodeItem);
 }
 
-// Show node options in a simple prompt (can be replaced with a styled modal)
+// Show node options (for now using prompt; can be replaced with a custom modal later)
 function showNodeOptions(roomKey, nodeKey, nodeData, nodeItem) {
   const action = prompt("Enter action: (delete, duplicate, modify, pin)", "delete");
   if (action === "delete") {
@@ -217,21 +190,67 @@ function showNodeOptions(roomKey, nodeKey, nodeData, nodeItem) {
   } else if (action === "modify") {
     const newName = prompt("Enter new name:", nodeData.name);
     if (newName) {
-      const nodeRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey);
-      update(nodeRef, { name: newName });
+      update(ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes/" + nodeKey), { name: newName });
     }
   } else if (action === "pin") {
     console.log("Node pinned:", nodeData);
-    alert("Node pinned! (This will add the node to a top bar later.)");
+    alert("Node pinned! (This will add the node to the top bar later.)");
   }
 }
 
-// --- Modal logic for creating room ---
+// Node Creation Modal: Open for a given room
+function openNodeCreationModal(roomKey) {
+  currentRoomKeyForNode = roomKey;
+  nodeCreationModal.style.display = "block";
+  newNodeNameInput.value = "";
+  nodeIconPalette.innerHTML = "";
+  
+  availableIcons.forEach(icon => {
+    const img = document.createElement("img");
+    img.src = "assets/images/" + icon;
+    img.alt = icon;
+    img.classList.add("icon-option");
+    img.addEventListener("click", () => {
+      document.querySelectorAll("#nodeIconPalette img").forEach(i => i.classList.remove("selected"));
+      img.classList.add("selected");
+    });
+    nodeIconPalette.appendChild(img);
+  });
+  
+  // Add a link/button for device provisioning. 
+  // For this example, we assume the device's provisioning page is at a known static IP, e.g., http://192.168.4.1
+  const provisionLink = document.createElement("a");
+  provisionLink.href = "http://192.168.4.1"; // Replace with dynamic logic if available.
+  provisionLink.target = "_blank";
+  provisionLink.textContent = "Keep your device powered on and click here to provision it";
+  provisionLink.classList.add("provision-link");
+  // Clear any existing link, then append.
+  const existingLink = document.getElementById("provisionLink");
+  if (existingLink) { existingLink.remove(); }
+  provisionLink.id = "provisionLink";
+  nodeIconPalette.parentNode.appendChild(provisionLink);
+}
 
+// Save node from modal
+saveNodeBtn.addEventListener("click", function() {
+  const nodeName = newNodeNameInput.value.trim();
+  const selectedIconEl = document.querySelector("#nodeIconPalette img.selected");
+  if (!nodeName) {
+    alert("Please enter a node name.");
+    return;
+  }
+  const nodeIcon = selectedIconEl ? selectedIconEl.alt : "default_node.png";
+  // Initialize node state to OFF by default.
+  push(ref(db, "users/" + currentUserUid + "/rooms/" + currentRoomKeyForNode + "/nodes"), { name: nodeName, icon: nodeIcon, state: "OFF" });
+  nodeCreationModal.style.display = "none";
+});
+
+// Room Creation Modal: Open and build icon palette for room
 function openRoomCreationModal() {
   roomCreationModal.style.display = "block";
   newRoomNameInput.value = "";
   roomIconPalette.innerHTML = "";
+  
   availableIcons.forEach(icon => {
     const img = document.createElement("img");
     img.src = "assets/images/" + icon;
@@ -245,6 +264,7 @@ function openRoomCreationModal() {
   });
 }
 
+// Save new room from room creation modal
 saveRoomBtn.addEventListener("click", function() {
   const roomName = newRoomNameInput.value.trim();
   const selectedIconEl = document.querySelector("#roomIconPalette img.selected");
@@ -257,77 +277,30 @@ saveRoomBtn.addEventListener("click", function() {
   roomCreationModal.style.display = "none";
 });
 
-// --- Modal logic for creating node ---
-function openNodeCreationModal(roomKey) {
-  currentRoomKeyForNode = roomKey;
-  nodeCreationModal.style.display = "block";
-  newNodeNameInput.value = "";
-  nodeIconPalette.innerHTML = "";
-  availableIcons.forEach(icon => {
-    const img = document.createElement("img");
-    img.src = "assets/images/" + icon;
-    img.alt = icon;
-    img.classList.add("icon-option");
-    img.addEventListener("click", () => {
-      document.querySelectorAll("#nodeIconPalette img").forEach(i => i.classList.remove("selected"));
-      img.classList.add("selected");
-    });
-    nodeIconPalette.appendChild(img);
-  });
-}
-
-saveNodeBtn.addEventListener("click", function() {
-  const nodeName = newNodeNameInput.value.trim();
-  const selectedIconEl = document.querySelector("#nodeIconPalette img.selected");
-  if (!nodeName) {
-    alert("Please enter a node name.");
-    return;
-  }
-  const nodeIcon = selectedIconEl ? selectedIconEl.alt : "default_node.png";
-  push(ref(db, "users/" + currentUserUid + "/rooms/" + currentRoomKeyForNode + "/nodes"), { name: nodeName, icon: nodeIcon, state: "OFF", provisioned: false });
-  nodeCreationModal.style.display = "none";
-});
-
-// --- Modal logic for room details ---
+// Open room modal to view nodes in room
 function openRoomModal(roomKey, roomData) {
   roomModal.style.display = "block";
   roomModalTitle.textContent = roomData.name;
-  roomModalNodesContainer.innerHTML = "";
+  roomModalNodesContainer.innerHTML = "";  // Clear previous nodes
   currentRoomKeyForNode = roomKey;
   const roomNodesRef = ref(db, "users/" + currentUserUid + "/rooms/" + roomKey + "/nodes");
   onChildAdded(roomNodesRef, snapshot => {
-    const nodeData = snapshot.val();
-    const nodeKey = snapshot.key;
-    addNodeItem(roomModalNodesContainer, roomKey, nodeKey, nodeData);
+    addNodeItem(roomModalNodesContainer, roomKey, snapshot.key, snapshot.val());
   });
 }
 
 // Close modal events
-closeRoomCreation.onclick = function() {
-  roomCreationModal.style.display = "none";
-};
-closeNodeCreation.onclick = function() {
-  nodeCreationModal.style.display = "none";
-};
-closeRoomModal.onclick = function() {
-  roomModal.style.display = "none";
-};
+closeRoomCreation.onclick = () => { roomCreationModal.style.display = "none"; }
+closeNodeCreation.onclick = () => { nodeCreationModal.style.display = "none"; }
+closeRoomModal.onclick = () => { roomModal.style.display = "none"; }
 
-// When user clicks outside a modal, close it.
+// Close modals when clicking outside of them
 window.onclick = function(event) {
-  if (event.target === roomCreationModal) {
-    roomCreationModal.style.display = "none";
-  }
-  if (event.target === nodeCreationModal) {
-    nodeCreationModal.style.display = "none";
-  }
-  if (event.target === roomModal) {
-    roomModal.style.display = "none";
-  }
+  if (event.target === roomCreationModal) roomCreationModal.style.display = "none";
+  if (event.target === nodeCreationModal) nodeCreationModal.style.display = "none";
+  if (event.target === roomModal) roomModal.style.display = "none";
 };
 
-// Event listeners for modals
+// Event listeners for Add Room and Add Node in Room modal
 addRoomBtn.addEventListener("click", openRoomCreationModal);
-addNodeInRoomBtn.addEventListener("click", () => {
-  openNodeCreationModal(currentRoomKeyForNode);
-});
+addNodeInRoomBtn.addEventListener("click", () => { openNodeCreationModal(currentRoomKeyForNode); });

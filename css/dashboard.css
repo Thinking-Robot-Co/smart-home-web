@@ -275,35 +275,33 @@ header button:hover {
 .icon-palette img.selected {
   border-color: var(--accent-color);
 }
-/* New styles for node buttons */
-.toggle-btn, .configure-btn, .node-options-btn {
-  margin: 5px;
-  padding: 5px 10px;
-  font-size: 0.85rem;
+
+
+/* Toggle button styling for node state */
+.node-toggle-btn {
+  background-color: var(--primary-color);
   border: none;
+  color: #fff;
+  padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  margin-left: 10px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
 }
 
-.toggle-btn {
-  background-color: var(--accent-color);
-  color: #fff;
-}
-
-.configure-btn {
+.node-toggle-btn:hover {
   background-color: var(--secondary-color);
-  color: #fff;
 }
 
-.node-options-btn {
-  background-color: transparent;
-  color: var(--text-color);
+/* Styling for the provision link in node creation modal */
+.provision-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--accent-color);
+  text-decoration: none;
 }
-
-/* You can adjust hover effects if needed */
-.toggle-btn:hover {
-  background-color: #00b0a1;
-}
-.configure-btn:hover {
-  background-color: #125ea2;
+.provision-link:hover {
+  text-decoration: underline;
 }
