@@ -277,7 +277,7 @@ header button:hover {
 }
 
 
-/* Toggle button styling for node state */
+/* Toggle button styling for node on/off */
 .node-toggle-btn {
   background-color: var(--primary-color);
   border: none;
@@ -294,7 +294,7 @@ header button:hover {
   background-color: var(--secondary-color);
 }
 
-/* Styling for the provision link in node creation modal */
+/* Styling for the provision link */
 .provision-link {
   display: inline-block;
   margin-top: 10px;

@@ -10,7 +10,7 @@
 <body>
   <div class="container">
     <header>
-      <h2>Dashboard  </h2>
+      <h2>Dashboard MANN</h2>
       <button onclick="logout()">Logout</button>
     </header>
     <p>Welcome, <span id="displayName">User</span>!</p>
@@ -19,7 +19,7 @@
     <section id="rooms-section">
       <h3>Your Rooms</h3>
       <div id="rooms-container">
-        <!-- Room cards (and nodes) will be dynamically loaded from Firebase -->
+        <!-- Room cards (and their nodes) will be dynamically loaded -->
       </div>
       <div style="text-align: center;">
         <button id="add-room-btn">+ Add Room</button>
@@ -49,18 +49,18 @@
       <div id="nodeIconPalette" class="icon-palette">
         <!-- Icon options for node will be generated here -->
       </div>
+      <!-- Provisioning link: instruct user to keep device powered and click here -->
+      <a id="provisionLink" href="http://192.168.4.1" target="_blank" class="provision-link">
+        Keep your device powered on and click here to provision it
+      </a>
       <button id="saveNodeBtn">Save Node</button>
     </div>
   </div>
 
-  <!-- Modal for Room Details (Show Nodes in Room & Node Options) -->
+  <!-- Modal for Room Details -->
   <div id="roomModal" class="modal">
     <div class="modal-content">
       <span class="close" id="closeRoomModal">&times;</span>
-      <div id="roomModalTopbar">
-        <!-- This topbar will show options for nodes later (modify, delete, duplicate, pin) -->
-        <!-- For each node, we can add a per-node options bar. Here we provide a placeholder -->
-      </div>
       <h3 id="roomModalTitle">Room Name</h3>
       <div id="roomModalNodesContainer">
         <!-- List of nodes for the room will be loaded here -->
@@ -69,7 +69,7 @@
     </div>
   </div>
   
-  <!-- Firebase Auth logic is loaded from auth.js -->
+  <!-- Load Firebase Auth logic -->
   <script type="module" src="js/auth.js"></script>
   <!-- Dashboard logic -->
   <script type="module" src="js/dashboard.js"></script>
